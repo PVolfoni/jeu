@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Barber Chaos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #1a1a2e;
+            font-family: 'Arial', sans-serif;
+            color: #fff;
+        }
+
+        .game-wrapper {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background: linear-gradient(135deg, #0f3460, #16213e);
+            border: 4px solid #e94560;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            overflow: hidden;
+        }
+
+        /* HUD */
+        .hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            z-index: 100;
+        }
+
+        .hud-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #e94560;
+        }
+
+        .hud-item span {
+            color: #00ff00;
+        }
+
+        /* Zone de jeu */
+        .game-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+
+        /* Zone des outils (Gauche) */
+        .tools-zone {
+            position: absolute;
+            left: 20px;
+            top: 60px;
+            width: 120px;
+            height: 400px;
+            border: 2px solid #00ff00;
+            background: rgba(0, 100, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            padding: 10px;
+        }
+
+        .tool-slot {
+            width: 100%;
+            height: 70px;
+            background: rgba(50, 50, 50, 0.8);
+            border: 2px solid #888;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tool-slot:hover {
+            border-color: #00ff00;
+            background: rgba(0, 100, 0, 0.3);
+        }
+
+        .tool-icon {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        /* Zone de coiffure (Droite) */
+        .barber-zone {
+            position: absolute;
+            right: 20px;
+            top: 60px;
+            width: 200px;
+            height: 400px;
+            border: 2px solid #e94560;
+            background: rgba(100, 0, 50, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        /* Chaise */
+        .chair {
+            width: 100px;
+            height: 80px;
+            background: #8b4513;
+            border: 3px solid #654321;
+            border-radius: 0 0 10px 10px;
+            position: relative;
+            bottom: 0;
+        }
+
+        /* Client */
+        .client {
+            position: absolute;
+            width: 50px;
+            height: 60px;
+            right: 35px;
+            bottom: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .client-hair {
+            width: 40px;
+            height: 25px;
+            background: #ffcc00;
+            border-radius: 50% 50% 0 0;
+            margin-bottom: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .client-head {
+            width: 30px;
+            height: 20px;
+            background: #f4a460;
+            border-radius: 5px;
+        }
+
+        .client-body {
+            width: 35px;
+            height: 20px;
+            background: #4169e1;
+            margin-top: 2px;
+        }
+
+        .client-bubble {
+            position: absolute;
+            width: 50px;
+            height: 30px;
+            background: white;
+            border: 2px solid black;
+            border-radius: 8px;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            color: black;
+            font-weight: bold;
+        }
+
+        .client-bubble::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid white;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .progress-bar-container {
+            position: absolute;
+            width: 100%;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.5);
+            top: -15px;
+            border: 1px solid white;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #00ff00;
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        /* Joueur (Coiffeur) */
+        .player {
+            position: absolute;
+            width: 30px;
+            height: 40px;
+            left: 100px;
+            bottom: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .player-body {
+            width: 24px;
+            height: 20px;
+            background: #ff6b6b;
+            border: 1px solid #c92a2a;
+        }
+
+        .player-head {
+            width: 18px;
+            height: 18px;
+            background: #f4a460;
+            border-radius: 50%;
+            margin-bottom: 2px;
+        }
+
+        .player-tool {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            right: -10px;
+            bottom: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        /* Cheveux au sol */
+        .hair-particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #ffcc00;
+            border-radius: 50%;
+        }
+
+        /* Écran de game over */
+        .game-over-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            gap: 20px;
+        }
+
+        .game-over-screen.active {
+            display: flex;
+        }
+
+        .game-over-title {
+            font-size: 48px;
+            font-weight: bold;
+            color: #e94560;
+            text-shadow: 3px 3px 0px rgba(255, 255, 255, 0.3);
+        }
+
+        .game-over-score {
+            font-size: 32px;
+            color: #00ff00;
+        }
+
+        .restart-button {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: #e94560;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .restart-button:hover {
+            background: #ff6b7a;
+            transform: scale(1.1);
+        }
+
+        .restart-button:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-wrapper">
+        <!-- HUD -->
+        <div class="hud">
+            <div class="hud-item">⏱️ Temps: <span id="timer">60</span>s</div>
+            <div class="hud-item">🔧 Outil: <span id="tool-display">Aucun</span></div>
+            <div class="hud-item">⭐ Score: <span id="score">0</span></div>
+        </div>
+
+        <!-- Zone de jeu -->
+        <div class="game-container">
+            <!-- Zone des outils (Gauche) -->
+            <div class="tools-zone">
+                <div class="tool-slot" data-tool="scissors">
+                    <div class="tool-icon">✂️</div>
+                </div>
+                <div class="tool-slot" data-tool="clipper">
+                    <div class="tool-icon">🔌</div>
+                </div>
+                <div class="tool-slot" data-tool="comb">
+                    <div class="tool-icon">🪮</div>
+                </div>
+                <div class="tool-slot" data-tool="broom">
+                    <div class="tool-icon">🧹</div>
+                </div>
+            </div>
+
+            <!-- Zone de coiffure (Droite) -->
+            <div class="barber-zone">
+                <div class="chair"></div>
+                <div class="client" id="client">
+                    <div class="progress-bar-container" id="progress-container">
+                        <div class="progress-bar" id="progress-bar"></div>
+                    </div>
+                    <div class="client-bubble" id="client-bubble"></div>
+                    <div class="client-hair" id="client-hair"></div>
+                    <div class="client-head"></div>
+                    <div class="client-body"></div>
+                </div>
+            </div>
+
+            <!-- Joueur -->
+            <div class="player" id="player">
+                <div class="player-head"></div>
+                <div class="player-body">
+                    <div class="player-tool" id="player-tool"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Écran Game Over -->
+        <div class="game-over-screen" id="gameOverScreen">
+            <div class="game-over-title">GAME OVER</div>
+            <div class="game-over-score">Score: <span id="final-score">0</span></div>
+            <button class="restart-button" onclick="location.reload()">Recommencer</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURATION DU JEU
+        // ============================================
+        const GAME_WIDTH = 800;
+        const GAME_HEIGHT = 600;
+        const GAME_DURATION = 60; // secondes
+        const PLAYER_SPEED = 3;
+        const PLAYER_WIDTH = 30;
+        const PLAYER_HEIGHT = 40;
+        const TOOLS = {
+            scissors: { name: 'Ciseaux', icon: '✂️' },
+            clipper: { name: 'Tondeuse', icon: '🔌' },
+            comb: { name: 'Peigne', icon: '🪮' },
+            broom: { name: 'Balai', icon: '🧹' }
+        };
+
+        // ============================================
+        // ÉTAT DU JEU
+        // ============================================
+        let gameState = {
+            running: true,
+            timeLeft: GAME_DURATION,
+            score: 0,
+            playerX: 100,
+            playerY: GAME_HEIGHT - 70,
+            playerVelocityX: 0,
+            currentTool: null,
+            friction: 0.95,
+            baseSpeed: PLAYER_SPEED,
+            hairParticles: [],
+            clientActive: false,
+            clientHairRequired: 10, // nombre de clics nécessaires
+            clientHairProgress: 0,
+            clientRequiredTool: null,
+            gameStartTime: Date.now()
+        };
+
+        // ============================================
+        // ÉLÉMENTS DOM
+        // ============================================
+        const playerEl = document.getElementById('player');
+        const clientEl = document.getElementById('client');
+        const clientBubbleEl = document.getElementById('client-bubble');
+        const clientHairEl = document.getElementById('client-hair');
+        const toolDisplayEl = document.getElementById('tool-display');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const gameOverScreenEl = document.getElementById('gameOverScreen');
+        const gameContainerEl = document.querySelector('.game-container');
+        const progressBarContainerEl = document.getElementById('progress-container');
+        const progressBarEl = document.getElementById('progress-bar');
+
+        // ============================================
+        // GESTION DES SONS (Web Audio API)
+        // ============================================
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playScissorsSound() {
+            const now = audioContext.currentTime;
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+
+            osc.frequency.value = 1200;
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        }
+
+        function playClipperSound() {
+            const now = audioContext.currentTime;
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        }
+
+        function playBroomSound() {
+            const now = audioContext.currentTime;
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.linearRampToValueAtTime(600, now + 0.15);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+            osc.start(now);
+            osc.stop(now + 0.15);
+        }
+
+        function playSuccessSound() {
+            const now = audioContext.currentTime;
+            const notes = [523.25, 659.25, 783.99]; // Do, Mi, Sol
+            notes.forEach((freq, idx) => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.2, now + idx * 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.1 + 0.2);
+                osc.start(now + idx * 0.1);
+                osc.stop(now + idx * 0.1 + 0.2);
+            });
+        }
+
+        function playErrorSound() {
+            const now = audioContext.currentTime;
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+
+            osc.frequency.setValueAtTime(200, now);
+            osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        }
+
+        // ============================================
+        // GESTION DES CONTRÔLES
+        // ============================================
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (e.key === ' ') {
+                e.preventDefault();
+                handleSpacePress();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        function handleSpacePress() {
+            if (!gameState.running) return;
+
+            // Ramassage d'outil
+            const toolSlots = document.querySelectorAll('.tool-slot');
+            toolSlots.forEach(slot => {
+                if (isPlayerNearTool(slot)) {
+                    gameState.currentTool = slot.dataset.tool;
+                    updateToolDisplay();
+                    playScissorsSound();
+                }
+            });
+
+            // Interaction client (coupe ou nettoyage)
+            if (isPlayerNearClient()) {
+                if (!gameState.clientActive && gameState.currentTool === gameState.clientRequiredTool) {
+                    // Début de coupe
+                    gameState.clientActive = true;
+                    gameState.clientHairProgress = 0;
+                    progressBarContainerEl.style.display = 'block';
+                    playScissorsSound();
+                } else if (gameState.clientActive && gameState.currentTool === gameState.clientRequiredTool) {
+                    // Clic de coupe
+                    gameState.clientHairProgress++;
+                    playScissorsSound();
+                    updateClientHair();
+                    const progress = (gameState.clientHairProgress / gameState.clientHairRequired) * 100;
+                    progressBarEl.style.width = progress + '%';
+
+                    if (gameState.clientHairProgress >= gameState.clientHairRequired) {
+                        completeClient();
+                    }
+                } else if (gameState.currentTool === 'broom' && gameState.hairParticles.length > 0) {
+                    // Nettoyage
+                    gameState.hairParticles = [];
+                    updateFriction();
+                    playBroomSound();
+                }
+            }
+        }
+
+        // ============================================
+        // PHYSIQUE ET COLLISION
+        // ============================================
+        function isPlayerNearTool(toolSlot) {
+            const rect = toolSlot.getBoundingClientRect();
+            const playerRect = playerEl.getBoundingClientRect();
+            const distance = 50; // pixels de proximité
+
+            return Math.abs(playerRect.left - rect.right) < distance &&
+                   Math.abs(playerRect.top - rect.bottom) < distance;
+        }
+
+        function isPlayerNearClient() {
+            const clientRect = clientEl.getBoundingClientRect();
+            const playerRect = playerEl.getBoundingClientRect();
+            const distance = 80; // pixels de proximité
+
+            return Math.abs(playerRect.right - clientRect.left) < distance &&
+                   Math.abs(playerRect.bottom - clientRect.bottom) < 40;
+        }
+
+        function updatePlayerPosition() {
+            // Mouvements horizontaux
+            if (keys['ArrowLeft'] || keys['a']) {
+                gameState.playerVelocityX = -gameState.baseSpeed;
+            } else if (keys['ArrowRight'] || keys['d']) {
+                gameState.playerVelocityX = gameState.baseSpeed;
+            } else {
+                gameState.playerVelocityX = 0;
+            }
+
+            // Appliquer friction
+            gameState.playerVelocityX *= gameState.friction;
+
+            // Limiter vitesse max
+            const maxSpeed = gameState.baseSpeed * 2;
+            gameState.playerVelocityX = Math.max(-maxSpeed, Math.min(maxSpeed, gameState.playerVelocityX));
+
+            // Mettre à jour position
+            gameState.playerX += gameState.playerVelocityX;
+
+            // Limites du jeu
+            gameState.playerX = Math.max(10, Math.min(GAME_WIDTH - PLAYER_WIDTH - 230, gameState.playerX));
+
+            // Appliquer à l'élément DOM
+            playerEl.style.left = gameState.playerX + 'px';
+        }
+
+        function updateFriction() {
+            const hairCount = gameState.hairParticles.length;
+            if (hairCount === 0) {
+                gameState.baseSpeed = PLAYER_SPEED;
+                gameState.friction = 0.95;
+            } else {
+                const slowdownFactor = 1 - (Math.min(hairCount, 30) / 60); // jusqu'à 50% ralenti
+                gameState.baseSpeed = PLAYER_SPEED * slowdownFactor;
+                gameState.friction = 0.98;
+            }
+        }
+
+        // ============================================
+        // GESTION DES CLIENTS
+        // ============================================
+        function spawnClient() {
+            if (!gameState.running) return;
+
+            gameState.clientActive = false;
+            gameState.clientHairProgress = 0;
+            gameState.clientHairRequired = Math.floor(Math.random() * (10 - 2 + 1)) + 2; // 2 à 10
+
+            const toolNames = Object.keys(TOOLS);
+            gameState.clientRequiredTool = toolNames[Math.floor(Math.random() * toolNames.length)];
+
+            // Afficher bulle
+            clientBubbleEl.textContent = TOOLS[gameState.clientRequiredTool].icon;
+
+            // Réinitialiser barre
+            progressBarContainerEl.style.display = 'none';
+            progressBarEl.style.width = '0%';
+
+            // Cheveux visibles
+            updateClientHair();
+
+            clientEl.style.display = 'flex';
+        }
+
+        function updateClientHair() {
+            const maxHeight = 25;
+            const progress = gameState.clientHairProgress / gameState.clientHairRequired;
+            const newHeight = Math.max(3, maxHeight * (1 - progress));
+            clientHairEl.style.height = newHeight + 'px';
+        }
+
+        function completeClient() {
+            playSuccessSound();
+            gameState.score++;
+            scoreEl.textContent = gameState.score;
+
+            // Créer particules cheveux au sol
+            for (let i = 0; i < 5; i++) {
+                const particle = {
+                    x: 680 + Math.random() * 40,
+                    y: 450 + Math.random() * 50,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: Math.random() * 2 + 1
+                };
+                gameState.hairParticles.push(particle);
+            }
+            updateFriction();
+
+            // Réinitialiser pour prochain client
+            clientEl.style.display = 'none';
+            gameState.clientActive = false;
+
+            // Spawn nouveau client après délai
+            setTimeout(spawnClient, 1500);
+        }
+
+        // ============================================
+        // PARTICULES DE CHEVEUX
+        // ============================================
+        function updateHairParticles() {
+            for (let i = gameState.hairParticles.length - 1; i >= 0; i--) {
+                const p = gameState.hairParticles[i];
+                p.vy += 0.1; // gravité
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vx *= 0.99; // friction air
+
+                // Supprimer si hors écran
+                if (p.y > GAME_HEIGHT - 20) {
+                    p.vy = -p.vy * 0.5; // rebondir
+                    p.y = GAME_HEIGHT - 20;
+                }
+                if (p.x < 0 || p.x > GAME_WIDTH || p.y > GAME_HEIGHT) {
+                    gameState.hairParticles.splice(i, 1);
+                }
+            }
+
+            // Afficher particules
+            renderHairParticles();
+        }
+
+        function renderHairParticles() {
+            // Supprimer anciennes particules du DOM
+            document.querySelectorAll('.hair-particle').forEach(el => el.remove());
+
+            // Ajouter nouvelles
+            gameState.hairParticles.forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'hair-particle';
+                el.style.left = p.x + 'px';
+                el.style.bottom = (GAME_HEIGHT - p.y) + 'px';
+                gameContainerEl.appendChild(el);
+            });
+        }
+
+        // ============================================
+        // GESTION DU TEMPS ET AFFICHAGE
+        // ============================================
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - gameState.gameStartTime) / 1000);
+            gameState.timeLeft = Math.max(0, GAME_DURATION - elapsed);
+            timerEl.textContent = gameState.timeLeft;
+
+            if (gameState.timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        function updateToolDisplay() {
+            if (gameState.currentTool) {
+                toolDisplayEl.textContent = TOOLS[gameState.currentTool].name;
+                toolDisplayEl.style.color = '#00ff00';
+            } else {
+                toolDisplayEl.textContent = 'Aucun';
+                toolDisplayEl.style.color = '#888';
+            }
+        }
+
+        function endGame() {
+            gameState.running = false;
+            clientEl.style.display = 'none';
+            document.getElementById('final-score').textContent = gameState.score;
+            gameOverScreenEl.classList.add('active');
+        }
+
+        // ============================================
+        // BOUCLE DE JEU
+        // ============================================
+        function gameLoop() {
+            if (gameState.running) {
+                updatePlayerPosition();
+                updateTimer();
+                updateHairParticles();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ============================================
+        // INITIALISATION
+        // ============================================
+        function init() {
+            updateToolDisplay();
+            updateClientHair();
+            spawnClient();
+            gameLoop();
+        }
+
+        // Démarrer le jeu
+        init();
+    </script>
+</body>
+</html>
